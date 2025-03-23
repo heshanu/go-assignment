@@ -38,6 +38,97 @@ var expectedJSON = `
         "description": "A chilling portrayal of perpetual war, omnipresent government surveillance, and public manipulation.",
         "price": 12.99,
         "quantity": 7
+    },
+	 {
+        "bookId": "n4o5p6q7-3456-7890-abcd-ef1234567801",
+        "authorId": "o5p6q7r8-5678-90ab-cdef-123456789012",
+        "publisherId": "p6q7r8s9-6789-0abc-def1-234567890134",
+        "title": "The Catcher in the Rye",
+        "publicationDate": "1951-07-16",
+        "isbn": "9780316769488",
+        "pages": 214,
+        "genre": "Fiction",
+        "description": "A story of teenage confusion and angst, narrated by a young man named Holden Caulfield.",
+        "price": 8.49,
+        "quantity": 18
+    },
+    {
+        "bookId": "q7r8s9t0-7890-abcd-ef12-345678901235",
+        "authorId": "r8s9t0u1-90ab-cdef-1234-567890abcdef6",
+        "publisherId": "s9t0u1v2-abcd-ef12-3456-7890abcdef78",
+        "title": "Moby-Dick",
+        "publicationDate": "1851-10-18",
+        "isbn": "9780199832828",
+        "pages": 704,
+        "genre": "Adventure",
+        "description": "The sailor Ishmael's narrative of the obsessive quest of Ahab, captain of the whaler the Pequod.",
+        "price": 12.99,
+        "quantity": 8
+    },
+    {
+        "bookId": "t0u1v2w3-cdef-1234-5678-90abcdef1239",
+        "authorId": "u1v2w3x4-ef12-3456-7890-abcdef123450",
+        "publisherId": "v2w3x4y5-1234-5678-90ab-cdef12345612",
+        "title": "War and Peace",
+        "publicationDate": "1869-03-01",
+        "isbn": "9781427030207",
+        "pages": 1296,
+        "genre": "Historical Fiction",
+        "description": "A chronicle of the lives and affairs of five Russian aristocratic families against the backdrop of the Napoleonic Wars.",
+        "price": 15.99,
+        "quantity": 5
+    },
+    {
+        "bookId": "w3x4y5z6-2345-6789-0abc-def12345673",
+        "authorId": "x4y5z6a7-3456-7890-abcd-ef1234567894",
+        "publisherId": "y5z6a7b8-5678-90ab-cdef-123456789056",
+        "title": "The Hobbit",
+        "publicationDate": "1937-09-21",
+        "isbn": "9780618002214",
+        "pages": 310,
+        "genre": "Fantasy",
+        "description": "The adventures of Bilbo Baggins, a hobbit who embarks on a quest to win a share of the treasure guarded by the dragon, Smaug.",
+        "price": 11.99,
+        "quantity": 25
+    },
+    {
+        "bookId": "z6a7b8c9-6789-0abc-def1-234567890127",
+        "authorId": "a7b8c9d0-7890-abcd-ef12-345678901238",
+        "publisherId": "b8c9d0e1-890a-bcde-f123-4567890abcdef",
+        "title": "The Lord of the Rings",
+        "publicationDate": "1954-07-29",
+        "isbn": "9780618574948",
+        "pages": 1216,
+        "genre": "Fantasy",
+        "description": "The epic tale of Frodo Baggins and the Fellowship as they journey to destroy the One Ring and defeat the Dark Lord Sauron.",
+        "price": 20.99,
+        "quantity": 10
+    },
+    {
+        "bookId": "c9d0e1f2-90ab-cdef-1234-567890abcd59",
+        "authorId": "d0e1f2g3-abcd-ef12-3456-7890abcdef10",
+        "publisherId": "e1f2g3h4-cdef-1234-5678-90abcdef1211",
+        "title": "The Alchemist",
+        "publicationDate": "1988-01-01",
+        "isbn": "9780062315007",
+        "pages": 197,
+        "genre": "Fiction",
+        "description": "A novel about a young Andalusian shepherd in his journey to the pyramids of Egypt.",
+        "price": 9.99,
+        "quantity": 30
+    },
+    {
+        "bookId": "f2g3h4i5-def1-2345-6789-0abcdef12321",
+        "authorId": "g3h4i5j6-1234-5678-90ab-cdef12345632",
+        "publisherId": "h4i5j6k7-2345-6789-0abc-def12345643",
+        "title": "The Da Vinci Code",
+        "publicationDate": "2003-03-18",
+        "isbn": "9780307474278",
+        "pages": 454,
+        "genre": "Mystery",
+        "description": "A murder in the Louvre and clues in Da Vinci paintings lead to the discovery of a religious mystery.",
+        "price": 14.99,
+        "quantity": 15
     }
 ]`
 
