@@ -1,27 +1,32 @@
-# syntax=docker/dockerfile:1
+# Use the official Golang image to create a build artifact.
+FROM golang:1.19 AS builder
 
-FROM golang:1.19
+# Set the Current Working Directory inside the container
+WORKDIR /app
 
-# Set destination for COPY
-WORKDIR /technicalAssignment
-
-# Download Go modules
+# Copy go mod and sum files
 COPY go.mod go.sum ./
+
+# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Copy the source code. Note the slash at the end, as explained in
-# https://docs.docker.com/reference/dockerfile/#copy
-COPY *.go ./
+# Copy the rest of the application source code
+COPY . .
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux go build -o /gotechnicalAssignment
+# Build the Go app
+RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
-# Optional:
-# To bind to a TCP port, runtime parameters must be supplied to the docker command.
-# But we can document in the Dockerfile what ports
-# the application is going to listen on by default.
-# https://docs.docker.com/reference/dockerfile/#expose
+# Use a minimal base image for the final stage
+FROM alpine:latest
+
+# Set the working directory
+WORKDIR /root/
+
+# Copy the Pre-built binary file from the previous stage
+COPY --from=builder /app/main .
+
+# Expose the port the app runs on
 EXPOSE 8081
 
-# Run
-CMD ["/gotechnicalAssignment"]
+# Command to run the executable
+CMD ["./main"]

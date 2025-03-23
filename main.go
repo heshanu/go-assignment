@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -39,18 +41,17 @@ type PaginationBookResponse struct {
 }
 
 func main() {
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
 
-	//endpoints here
-	mux.HandleFunc("GET /books", getAllBooks)
-	mux.HandleFunc("GET /books/{bookId}", getBookById)
-	mux.HandleFunc("POST /books", createBook)
-	mux.HandleFunc("PUT /books/{bookId}", updateBookById)
-	mux.HandleFunc("DELETE /books/{bookId}", deleteBookById)
-	mux.HandleFunc("GET /books/search", searchBookByKeyWord)
+	// Define routes
+	r.HandleFunc("/books", getAllBooks).Methods("GET")
+	r.HandleFunc("/books/{bookId}", getBookById).Methods("GET")
+	r.HandleFunc("/books", createBook).Methods("POST")
+	r.HandleFunc("/books/{bookId}", updateBookById).Methods("PUT")
+	r.HandleFunc("/books/{bookId}", deleteBookById).Methods("DELETE")
 
 	fmt.Println("Server listening on :8081")
-	http.ListenAndServe(":8081", mux)
+	http.ListenAndServe(":8081", r)
 }
 
 func loadBookfromJson(jsonfile string) ([]Book, error) {
@@ -153,8 +154,9 @@ func getAllBooks(w http.ResponseWriter, request *http.Request) {
 
 func getBookById(w http.ResponseWriter, request *http.Request) {
 	// Extract bookId from request
-	requestedbookId := request.PathValue("bookId")
-	fmt.Println("Requested Book ID:", requestedbookId)
+	// Implementation for deleting a book by ID
+	vars := mux.Vars(request)
+	requestedbookId := vars["bookId"]
 
 	// Validate book ID
 	if requestedbookId == "" {
