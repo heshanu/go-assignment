@@ -470,3 +470,106 @@ func TestUpdateBook(t *testing.T) {
 		})
 	}
 }
+
+func TestDeleteById(t *testing.T) {
+	originalData, err := os.ReadFile("books.json")
+	if err != nil {
+		t.Fatalf("Failed to read original books.json: %v", err)
+	}
+
+	// Restore the original books.json file after the test
+	defer func() {
+		if err := os.WriteFile("books.json", originalData, 0644); err != nil {
+			t.Fatalf("Failed to restore original books.json: %v", err)
+		}
+	}()
+
+	// Define mock books data
+	mockBook := []Book{
+		{
+			BookID:          "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+			AuthorID:        "b2c3d4e5-6789-0ab1-cdef-234567890abc",
+			PublisherID:     "c3d4e5f6-7890-ab12-cdef-34567890abcd",
+			Title:           "To Kill a Mockingbird",
+			PublicationDate: "1960-07-11",
+			ISBN:            "9780061120084",
+			Pages:           281,
+			Genre:           "Fiction",
+			Description:     "A story of racial injustice in the Deep South, seen through the eyes of a young girl.",
+			Price:           8.99,
+			Quantity:        10,
+		},
+	}
+
+	// Write mock books to the original books.json file
+	file, err := os.Create("books.json")
+	if err != nil {
+		t.Fatalf("Failed to create books.json: %v", err)
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	if err := encoder.Encode(mockBook); err != nil {
+		t.Fatalf("Failed to write mock books to books.json: %v", err)
+	}
+
+	// Marshal the new book into JSON
+	mockBookJSON, err := json.Marshal(mockBook)
+	if err != nil {
+		t.Fatalf("Failed to marshal new book: %v", err)
+	}
+
+	// Test cases
+	testsList := []struct {
+		name           string
+		bookID         string
+		requestBody    string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Valid Book Delete by Id",
+			bookID:         "a1b2c3d4-5678-90ab-cdef-1234567890ab",
+			requestBody:    string(mockBookJSON),
+			expectedStatus: http.StatusOK,
+			expectedBody:   "Book deleted successfully",
+		},
+	}
+
+	for _, tt := range testsList {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a request with the book ID
+			// Create a request with the book ID
+			req := httptest.NewRequest("DELETE", "/books/"+tt.bookID, nil)
+			req.SetPathValue("bookId", tt.bookID)
+
+			// Create a response recorder
+			rr := httptest.NewRecorder()
+
+			// Call the handler
+			deleteBookById(rr, req)
+
+			// Check the status code
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Expected status code %d, got %d", tt.expectedStatus, rr.Code)
+			}
+
+			// Normalize the expected JSON
+			expectedBodyNormalized, err := normalizeJSON(tt.expectedBody)
+			if err != nil {
+				t.Fatalf("Failed to normalize expected JSON: %v", err)
+			}
+
+			// Normalize the actual JSON
+			actualBodyNormalized, err := normalizeJSON(rr.Body.String())
+			if err != nil {
+				t.Fatalf("Failed to normalize actual JSON: %v", err)
+			}
+
+			// Compare the normalized JSON strings
+			if expectedBodyNormalized != actualBodyNormalized {
+				t.Errorf("Expected body:\n%s\nGot body:\n%s", expectedBodyNormalized, actualBodyNormalized)
+			}
+		})
+	}
+}
