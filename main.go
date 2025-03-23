@@ -13,6 +13,7 @@ import (
 var (
 	BookMutex     sync.Mutex
 	BookReadMutex sync.RWMutex
+	wg            sync.WaitGroup
 )
 
 type Book struct {
@@ -410,33 +411,31 @@ func searchBookByKeyWord(w http.ResponseWriter, request *http.Request) {
 
 // searchBooksConcurrently performs a concurrent search on books
 func searchBooksConcurrently(books []Book, keyword string) []Book {
-	// Split the books into chunks for concurrent processing
-	chunkSize := len(books) / 4 // Divide into 4 chunks (adjust as needed)
+	//channel is like one thread
+	resultsChan := make(chan []Book)
+
+	// Split the books into chunks
+	chunkSize := len(books) / 4
 	if chunkSize == 0 {
 		chunkSize = 1
 	}
 
-	// Channel to collect results from goroutines
-	resultsChan := make(chan []Book)
-
-	// WaitGroup to wait for all goroutines to finish
-	var wg sync.WaitGroup
-
 	// Process each chunk concurrently
+	//search each part seperatly like java threads
 	for i := 0; i < len(books); i += chunkSize {
 		end := i + chunkSize
 		if end > len(books) {
 			end = len(books)
 		}
 
-		wg.Add(1)
+		wg.Add(1) // Increment the WaitGroup counter
 		go func(chunk []Book) {
-			defer wg.Done()
-			resultsChan <- searchBooks(chunk, keyword)
-		}(books[i:end])
+			defer wg.Done()                            // Decrement the WaitGroup counter when done
+			resultsChan <- searchBooks(chunk, keyword) // Send results to the channel
+		}(books[i:end]) // Pass the chunk to the goroutine
 	}
 
-	// Close the results channel once all goroutines are done
+	// Close the channel when all goroutines are done
 	go func() {
 		wg.Wait()
 		close(resultsChan)
@@ -448,5 +447,6 @@ func searchBooksConcurrently(books []Book, keyword string) []Book {
 		results = append(results, chunkResults...)
 	}
 
+	//return book slice
 	return results
 }
