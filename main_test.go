@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -213,6 +214,122 @@ func TestGetBookById(t *testing.T) {
 
 			// Call the handler
 			getBookById(rr, req)
+
+			// Check the status code
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Expected status code %d, got %d", tt.expectedStatus, rr.Code)
+			}
+
+			// Normalize the expected JSON
+			expectedBodyNormalized, err := normalizeJSON(tt.expectedBody)
+			if err != nil {
+				t.Fatalf("Failed to normalize expected JSON: %v", err)
+			}
+
+			// Normalize the actual JSON
+			actualBodyNormalized, err := normalizeJSON(rr.Body.String())
+			if err != nil {
+				t.Fatalf("Failed to normalize actual JSON: %v", err)
+			}
+
+			// Compare the normalized JSON strings
+			if expectedBodyNormalized != actualBodyNormalized {
+				t.Errorf("Expected body:\n%s\nGot body:\n%s", expectedBodyNormalized, actualBodyNormalized)
+			}
+		})
+	}
+}
+
+func TestCreateBook(t *testing.T) {
+	// Backup the original books.json file
+	originalData, err := os.ReadFile("books.json")
+	if err != nil {
+		t.Fatalf("Failed to read original books.json: %v", err)
+	}
+
+	// Restore the original books.json file after the test
+	defer func() {
+		if err := os.WriteFile("books.json", originalData, 0644); err != nil {
+			t.Fatalf("Failed to restore original books.json: %v", err)
+		}
+	}()
+
+	// Define mock books data
+	mockBooks := []Book{
+		{
+			BookID:          "a1b2c3d4-5678-90ab-cdef-1234567890a3",
+			AuthorID:        "b2c3d4e5-6789-0ab1-cdef-234567890ab3",
+			PublisherID:     "c3d4e5f6-7890-ab12-cdef-34567890abc3",
+			Title:           "Harry Potter-3",
+			PublicationDate: "1906-07-01",
+			ISBN:            "9780061120089",
+			Pages:           28,
+			Genre:           "Fiction",
+			Description:     "A story of racial injustice in the Deep South, seen through the eyes of a young girl.",
+			Price:           128.99,
+			Quantity:        120,
+		},
+	}
+
+	// Write mock books to the original books.json file
+	file, err := os.Create("books.json")
+	if err != nil {
+		t.Fatalf("Failed to create books.json: %v", err)
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	if err := encoder.Encode(mockBooks); err != nil {
+		t.Fatalf("Failed to write mock books to books.json: %v", err)
+	}
+
+	// Define the new book to be created
+	newBook := Book{
+		BookID:          "a1b2c3d4-5678-90ab-cdef-1234567890a3",
+		AuthorID:        "b2c3d4e5-6789-0ab1-cdef-234567890ab3",
+		PublisherID:     "c3d4e5f6-7890-ab12-cdef-34567890abc3",
+		Title:           "Harry Potter-3",
+		PublicationDate: "1906-07-01",
+		ISBN:            "9780061120089",
+		Pages:           28,
+		Genre:           "Fiction",
+		Description:     "A story of racial injustice in the Deep South, seen through the eyes of a young girl.",
+		Price:           128.99,
+		Quantity:        120,
+	}
+
+	// Marshal the new book into JSON
+	newBookJSON, err := json.Marshal(newBook)
+	if err != nil {
+		t.Fatalf("Failed to marshal new book: %v", err)
+	}
+
+	// Test cases
+	testsList := []struct {
+		name           string
+		requestBody    string
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name:           "Valid Book Creation",
+			requestBody:    string(newBookJSON),
+			expectedStatus: http.StatusCreated,
+			expectedBody:   "Book added successfully",
+		},
+	}
+
+	for _, tt := range testsList {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a request with the book JSON as the body
+			req := httptest.NewRequest("POST", "/books", strings.NewReader(tt.requestBody))
+			req.Header.Set("Content-Type", "application/json")
+
+			// Create a response recorder
+			rr := httptest.NewRecorder()
+
+			// Call the handler
+			createBook(rr, req)
 
 			// Check the status code
 			if rr.Code != tt.expectedStatus {
