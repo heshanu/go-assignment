@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -37,60 +38,70 @@ func main() {
 	mux.HandleFunc("POST /books", createBook)
 	mux.HandleFunc("PUT /books/{bookId}", updateBookById)
 	mux.HandleFunc("DELETE /books/{bookId}", deleteBookById)
+	mux.HandleFunc("GET /books/search", searchBookByKeyWord)
 
 	fmt.Println("Server listening on :8081")
 	http.ListenAndServe(":8081", mux)
 }
 
-func getAllBooks(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// lock shared resource in this codebase users.json
+func loadBookfromJson(jsonfile string) ([]Book, error) {
+	// Lock shared resource (books.json)
 	BookMutex.Lock()
+	// Release shared resource when the function returns
+	defer BookMutex.Unlock()
 
-	//Read the JSON fill
-	file, err := os.Open("books.json")
+	// Open the JSON file
+	file, err := os.Open(jsonfile)
 	if err != nil {
-		http.Error(w, "Could not open books file", http.StatusInternalServerError)
-		return
+		return nil, fmt.Errorf("could not open books file: %v", err)
 	}
 	defer file.Close()
-
-	//release shared resource which means users.json file
-	defer BookMutex.Unlock()
 
 	// Read the file's content
 	byteValue, err := ioutil.ReadAll(file)
 	if err != nil {
-		http.Error(w, "Could not read books.json file", http.StatusInternalServerError)
+		return nil, fmt.Errorf("could not read books.json file: %v", err)
+	}
+
+	// Decode the JSON data into a slice of Book structs
+	var booksList []Book
+	if err := json.Unmarshal(byteValue, &booksList); err != nil {
+		return nil, fmt.Errorf("could not decode books.json JSON: %v", err)
+	}
+
+	// Return the list of books
+	return booksList, nil
+}
+
+func getAllBooks(w http.ResponseWriter, request *http.Request) {
+	// Check if the request method is GET
+	if request.Method != http.MethodGet {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Decode the JSON data into a slice of User structs
-	var booksList []Book
-	err = json.Unmarshal(byteValue, &booksList)
+	// Load books from the JSON file
+	books, err := loadBookfromJson("books.json")
 	if err != nil {
-		http.Error(w, "Could not decode books.json JSON", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Set the Content-Type header to application/json
 	w.Header().Set("Content-Type", "application/json")
 
-	// Encode the users slice to JSON and write it to the response
-	err = json.NewEncoder(w).Encode(booksList)
+	// Set the HTTP status code to 200 (OK)
+	w.WriteHeader(http.StatusOK)
 
-	if err != nil {
-		http.Error(w, "Could not encode users to JSON", http.StatusInternalServerError)
+	// Encode the books slice to JSON and write it to the response
+	if err := json.NewEncoder(w).Encode(books); err != nil {
+		http.Error(w, "Could not encode books to JSON", http.StatusInternalServerError)
 	}
 }
 
-func getBookById(w http.ResponseWriter, r *http.Request) {
+func getBookById(w http.ResponseWriter, request *http.Request) {
 	// Extract bookId from request
-	requestedbookId := r.PathValue("bookId")
+	requestedbookId := request.PathValue("bookId")
 	fmt.Println("Requested Book ID:", requestedbookId)
 
 	// Validate book ID
@@ -100,38 +111,22 @@ func getBookById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Open books.json file
-	file, err := os.Open("books.json")
-	if err != nil {
-		http.Error(w, "Could not open books file", http.StatusInternalServerError)
-		return
-	}
-	defer file.Close()
+	booksList, err := loadBookfromJson("books.json")
 
-	// Lock shared resource after successfully opening the file
-	BookReadMutex.Lock()
-	defer BookReadMutex.Unlock() // Unlock when function returns
-
-	// Read file content
-	byteValue, err := ioutil.ReadAll(file)
 	if err != nil {
-		http.Error(w, "Could not read books.json file", http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Parse JSON data into a slice of Book structs
 	//i use array for store json values
 	//I didnt use map because  this data simple,few objects and static data
-	var bookList []Book
-	err = json.Unmarshal(byteValue, &bookList)
-	if err != nil {
-		http.Error(w, "Could not decode books JSON", http.StatusInternalServerError)
-		return
-	}
 
 	// Search for the requested book
 	// without db and orm i have to search using linear search
 	//best case omega(1) wrost case is O(n)
-	for _, book := range bookList {
+
+	for _, book := range booksList {
 		if book.BookID == requestedbookId {
 			// Set response header
 			w.Header().Set("Content-Type", "application/json")
@@ -148,14 +143,14 @@ func getBookById(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Book couldnt found", http.StatusNotFound)
 }
 
-func createBook(w http.ResponseWriter, r *http.Request) {
+func createBook(w http.ResponseWriter, request *http.Request) {
 
 	//lock shared books file
 	BookMutex.Lock()
 	defer BookMutex.Unlock()
 
 	// Read the request body
-	requestBookBody, err := ioutil.ReadAll(r.Body)
+	requestBookBody, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		return
@@ -215,9 +210,9 @@ func createBook(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Book added successfully"))
 }
 
-func updateBookById(w http.ResponseWriter, r *http.Request) {
+func updateBookById(w http.ResponseWriter, request *http.Request) {
 	// Extract bookId from request
-	requestedbookId := r.PathValue("bookId")
+	requestedbookId := request.PathValue("bookId")
 	fmt.Println("Requested Book ID:", requestedbookId)
 
 	// Lock shared books file
@@ -225,12 +220,12 @@ func updateBookById(w http.ResponseWriter, r *http.Request) {
 	defer BookMutex.Unlock()
 
 	// Read the request body
-	requestBookBody, err := ioutil.ReadAll(r.Body)
+	requestBookBody, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
+	defer request.Body.Close()
 
 	// Unmarshal the request JSON into a Book struct
 	var updatedBook Book
@@ -300,9 +295,9 @@ func updateBookById(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Book updated successfully"))
 }
 
-func deleteBookById(w http.ResponseWriter, r *http.Request) {
+func deleteBookById(w http.ResponseWriter, request *http.Request) {
 
-	requestedBookID := r.PathValue("bookId")
+	requestedBookID := request.PathValue("bookId")
 	fmt.Println("Requested Book ID:", requestedBookID)
 
 	// Validate book ID
@@ -373,4 +368,85 @@ func deleteBookById(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Book deleted successfully"))
 
+}
+
+func searchBooks(books []Book, keyword string) []Book {
+	var results []Book
+	lowerKeyword := strings.ToLower(keyword)
+
+	for _, book := range books {
+		if strings.Contains(strings.ToLower(book.Title), lowerKeyword) ||
+			strings.Contains(strings.ToLower(book.Description), lowerKeyword) {
+			results = append(results, book)
+		}
+	}
+	return results
+}
+
+func searchBookByKeyWord(w http.ResponseWriter, request *http.Request) {
+	// Extract the search keyword from the query parameter
+	keyword := request.URL.Query().Get("q")
+	if keyword == "" {
+		http.Error(w, "Missing search keyword", http.StatusBadRequest)
+		return
+	}
+
+	// Load books from the JSON file
+	books, err := loadBookfromJson("books.json")
+	if err != nil {
+		http.Error(w, "Failed to load books", http.StatusInternalServerError)
+		return
+	}
+
+	// Perform the search concurrently
+	results := searchBooksConcurrently(books, keyword)
+
+	// Return the results as JSON
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(results); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+// searchBooksConcurrently performs a concurrent search on books
+func searchBooksConcurrently(books []Book, keyword string) []Book {
+	// Split the books into chunks for concurrent processing
+	chunkSize := len(books) / 4 // Divide into 4 chunks (adjust as needed)
+	if chunkSize == 0 {
+		chunkSize = 1
+	}
+
+	// Channel to collect results from goroutines
+	resultsChan := make(chan []Book)
+
+	// WaitGroup to wait for all goroutines to finish
+	var wg sync.WaitGroup
+
+	// Process each chunk concurrently
+	for i := 0; i < len(books); i += chunkSize {
+		end := i + chunkSize
+		if end > len(books) {
+			end = len(books)
+		}
+
+		wg.Add(1)
+		go func(chunk []Book) {
+			defer wg.Done()
+			resultsChan <- searchBooks(chunk, keyword)
+		}(books[i:end])
+	}
+
+	// Close the results channel once all goroutines are done
+	go func() {
+		wg.Wait()
+		close(resultsChan)
+	}()
+
+	// Merge results from all goroutines
+	var results []Book
+	for chunkResults := range resultsChan {
+		results = append(results, chunkResults...)
+	}
+
+	return results
 }
