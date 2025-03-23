@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -28,6 +29,13 @@ type Book struct {
 	Description     string  `json:"description"`
 	Price           float64 `json:"price"`
 	Quantity        int     `json:"quantity"`
+}
+
+type PaginationBookResponse struct {
+	TotalNumOfBooks int
+	Page            int
+	Limit           int
+	BookList        []Book
 }
 
 func main() {
@@ -74,7 +82,42 @@ func loadBookfromJson(jsonfile string) ([]Book, error) {
 	return booksList, nil
 }
 
+// pagination for getAllbooks
+func getAllBooksPagination(books []Book, page int, limit int) (PaginationBookResponse, error) {
+
+	if page <= 0 || limit <= 0 {
+		return PaginationBookResponse{}, fmt.Errorf("page and limit must be greater than zero")
+	}
+
+	// Calculate pagination offsets
+	start := (page - 1) * limit
+	end := start + limit
+
+	// Ensure end does not exceed the length of the books slice
+	if end > len(books) {
+		end = len(books)
+	}
+
+	// Get the paginated subset of books
+	paginatedBooks := books[start:end]
+
+	// Create the paginated response
+	response := PaginationBookResponse{
+		TotalNumOfBooks: len(books),
+		BookList:        paginatedBooks,
+		Page:            page,
+		Limit:           limit,
+	}
+	return response, nil
+
+}
+
 func getAllBooks(w http.ResponseWriter, request *http.Request) {
+
+	// Parse query parameters
+	page, _ := strconv.Atoi(request.URL.Query().Get("page"))
+	limit, _ := strconv.Atoi(request.URL.Query().Get("limit"))
+
 	// Check if the request method is GET
 	if request.Method != http.MethodGet {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -88,6 +131,14 @@ func getAllBooks(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	//parse books slice for pagination
+	bookPaginationData, err := getAllBooksPagination(books, page, limit)
+	if err != nil {
+		http.Error(w, "page and limit must be greater than zero", http.StatusMethodNotAllowed)
+		return
+
+	}
+
 	// Set the Content-Type header to application/json
 	w.Header().Set("Content-Type", "application/json")
 
@@ -95,7 +146,7 @@ func getAllBooks(w http.ResponseWriter, request *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	// Encode the books slice to JSON and write it to the response
-	if err := json.NewEncoder(w).Encode(books); err != nil {
+	if err := json.NewEncoder(w).Encode(bookPaginationData); err != nil {
 		http.Error(w, "Could not encode books to JSON", http.StatusInternalServerError)
 	}
 }
