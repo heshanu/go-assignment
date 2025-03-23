@@ -50,8 +50,11 @@ func main() {
 	r.HandleFunc("/books/{bookId}", updateBookById).Methods("PUT")
 	r.HandleFunc("/books/{bookId}", deleteBookById).Methods("DELETE")
 
-	fmt.Println("Server listening on :8081")
-	http.ListenAndServe(":8081", r)
+	// Start the server
+	fmt.Println("Server listening on :8082")
+	if err := http.ListenAndServe(":8082", r); err != nil {
+		fmt.Printf("Error starting server: %s\n", err)
+	}
 }
 
 func loadBookfromJson(jsonfile string) ([]Book, error) {
@@ -265,9 +268,8 @@ func createBook(w http.ResponseWriter, request *http.Request) {
 }
 
 func updateBookById(w http.ResponseWriter, request *http.Request) {
-	// Extract bookId from request
-	requestedbookId := request.PathValue("bookId")
-	fmt.Println("Requested Book ID:", requestedbookId)
+	vars := mux.Vars(request)
+	requestedbookId := vars["bookId"]
 
 	// Lock shared books file
 	BookMutex.Lock()
@@ -351,8 +353,8 @@ func updateBookById(w http.ResponseWriter, request *http.Request) {
 
 func deleteBookById(w http.ResponseWriter, request *http.Request) {
 
-	requestedBookID := request.PathValue("bookId")
-	fmt.Println("Requested Book ID:", requestedBookID)
+	vars := mux.Vars(request)
+	requestedBookID := vars["bookId"]
 
 	// Validate book ID
 	if len(requestedBookID) == 0 {

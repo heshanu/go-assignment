@@ -5,31 +5,17 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
 
 // Define mock books data
-
-var expectedJSON = `
-	{
-    "TotalNumOfBooks": 16,
+var expectedJSON = `{
+    "TotalNumOfBooks": 15,
     "Page": 1,
     "Limit": 2,
     "BookList": [
-        {
-            "bookId": "a1b2c3d4-5678-90ab-cdef-1234567890ab",
-            "authorId": "b2c3d4e5-6789-0ab1-cdef-234567890abc",
-            "publisherId": "c3d4e5f6-7890-ab12-cdef-34567890abcd",
-            "title": "To Kill a Mockingbird",
-            "publicationDate": "1960-07-11",
-            "isbn": "9780061120084",
-            "pages": 281,
-            "genre": "Fiction",
-            "description": "A story of racial injustice in the Deep South, seen through the eyes of a young girl.",
-            "price": 8.99,
-            "quantity": 10
-        },
         {
             "bookId": "d4e5f6a7-890b-cdef-1234-567890abcdef",
             "authorId": "e5f6a7b8-90bc-def1-2345-67890abcdef1",
@@ -42,10 +28,29 @@ var expectedJSON = `
             "description": "A chilling portrayal of perpetual war, omnipresent government surveillance, and public manipulation.",
             "price": 12.99,
             "quantity": 7
+        },
+        {
+            "bookId": "n4o5p6q7-3456-7890-abcd-ef1234567801",
+            "authorId": "o5p6q7r8-5678-90ab-cdef-123456789012",
+            "publisherId": "p6q7r8s9-6789-0abc-def1-234567890134",
+            "title": "The Catcher in the Rye",
+            "publicationDate": "1951-07-16",
+            "isbn": "9780316769488",
+            "pages": 214,
+            "genre": "Fiction",
+            "description": "A story of teenage confusion and angst, narrated by a young man named Holden Caulfield.",
+            "price": 8.49,
+            "quantity": 18
         }
     ]
+}`
+
+type testCase struct {
+	name           string
+	bookID         string
+	expectedStatus int
+	expectedBody   string
 }
-`
 
 func normalizeJSON(jsonStr string) (string, error) {
 	// Try to unmarshal as JSON
@@ -64,8 +69,32 @@ func normalizeJSON(jsonStr string) (string, error) {
 
 func TestGetAllBooks(t *testing.T) {
 	// Backup the original books.json file
+	originalData, err := os.ReadFile("books.json")
+	if err != nil {
+		t.Fatalf("Failed to read original books.json: %v", err)
+	}
+
+	// Restore the original books.json file after the test
+	defer func() {
+		if err := os.WriteFile("books.json", originalData, 0644); err != nil {
+			t.Fatalf("Failed to restore original books.json: %v", err)
+		}
+	}()
+
+	// Write mock books to the original books.json file
+	file, err := os.Create("books.json")
+	if err != nil {
+		t.Fatalf("Failed to create books.json: %v", err)
+	}
+	defer file.Close()
+
+	// Write the mock data to the file
+	if _, err := file.WriteString(expectedJSON); err != nil {
+		t.Fatalf("Failed to write mock books to books.json: %v", err)
+	}
+
 	// Create a request to pass to our handler
-	req, err := http.NewRequest("GET", "/books?page=1&limit=2", nil)
+	req, err := http.NewRequest("GET", "/books", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,27 +112,136 @@ func TestGetAllBooks(t *testing.T) {
 	}
 
 	// Unmarshal the expected JSON response into a slice of Book structs
-	var response PaginationBookResponse
-	if err := json.Unmarshal([]byte(expectedJSON), &response); err != nil {
-		t.Fatalf("Failed to unmarshal JSON response: %v", err)
+	var expectedBooks []Book
+	if err := json.Unmarshal([]byte(expectedJSON), &expectedBooks); err != nil {
+		t.Fatalf("Failed to unmarshal expected JSON: %v", err)
 	}
 
-	// Add assertions to verify the unmarshalled data
-	if response.TotalNumOfBooks != 16 {
-		t.Errorf("Expected TotalNumOfBooks to be 16, but got %d", response.TotalNumOfBooks)
+	// Unmarshal the actual response body into a slice of Book structs
+	var actualBooks []Book
+	if err := json.Unmarshal(rr.Body.Bytes(), &actualBooks); err != nil {
+		t.Fatalf("Failed to unmarshal actual response: %v", err)
 	}
 
-	if len(response.BookList) != 2 {
-		t.Errorf("Expected 2 books, but got %d", len(response.BookList))
-	}
-
-	// Example assertion for the first book
-	if response.BookList[0].Title != "To Kill a Mockingbird" {
-		t.Errorf("Expected title 'To Kill a Mockingbird', but got %s", response.BookList[0].Title)
+	// Compare the actual and expected responses
+	if !reflect.DeepEqual(actualBooks, expectedBooks) {
+		t.Errorf("Handler returned unexpected body: got %v want %v", actualBooks, expectedBooks)
 	}
 }
 
 func TestGetBookById(t *testing.T) {
+	// Backup the original books.json file
+	originalData, err := os.ReadFile("books.json")
+	if err != nil {
+		t.Fatalf("Failed to read original books.json: %v", err)
+	}
+
+	// Restore the original books.json file after the test
+	defer func() {
+		if err := os.WriteFile("books.json", originalData, 0644); err != nil {
+			t.Fatalf("Failed to restore original books.json: %v", err)
+		}
+	}()
+
+	// Define mock books data
+	mockBooks := []Book{
+		{
+			BookID:          "d4e5f6a7-890b-cdef-1234-567890abcdef",
+			AuthorID:        "e5f6a7b8-90bc-def1-2345-67890abcdef1",
+			PublisherID:     "f6a7b8c9-0bc1-def2-3456-7890abcdef12",
+			Title:           "1984",
+			PublicationDate: "1949-06-08",
+			ISBN:            "9780451524935",
+			Pages:           328,
+			Genre:           "Dystopian",
+			Description:     "A chilling portrayal of perpetual war, omnipresent government surveillance, and public manipulation.",
+			Price:           12.99,
+			Quantity:        7,
+		},
+	}
+
+	// Write mock books to the original books.json file
+	//avoiding updating books.json original file
+	file, err := os.Create("books.json")
+	if err != nil {
+		t.Fatalf("Failed to create books.json: %v", err)
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	if err := encoder.Encode(mockBooks); err != nil {
+		t.Fatalf("Failed to write mock books to books.json: %v", err)
+	}
+
+	// Test cases
+	testsList := []testCase{
+		{
+			name:           "Valid Book ID",
+			bookID:         "d4e5f6a7-890b-cdef-1234-567890abcdef",
+			expectedStatus: http.StatusOK,
+			expectedBody: `{
+                "bookId": "d4e5f6a7-890b-cdef-1234-567890abcdef",
+                "authorId": "e5f6a7b8-90bc-def1-2345-67890abcdef1",
+                "publisherId": "f6a7b8c9-0bc1-def2-3456-7890abcdef12",
+                "title": "1984",
+                "publicationDate": "1949-06-08",
+                "isbn": "9780451524935",
+                "pages": 328,
+                "genre": "Dystopian",
+                "description": "A chilling portrayal of perpetual war, omnipresent government surveillance, and public manipulation.",
+                "price": 12.99,
+                "quantity": 7
+            }`,
+		},
+		{
+			name:           "Invalid Book ID",
+			bookID:         "3",
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   "Book couldnt found\n",
+		},
+		{
+			name:           "Empty Book ID",
+			bookID:         "",
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   "Invalid bookID provided\n",
+		},
+	}
+
+	for _, tt := range testsList {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a request with the book ID
+			req := httptest.NewRequest("GET", "/books/"+tt.bookID, nil)
+			req.SetPathValue("bookId", tt.bookID)
+
+			// Create a response recorder
+			rr := httptest.NewRecorder()
+
+			// Call the handler
+			getBookById(rr, req)
+
+			// Check the status code
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Expected status code %d, got %d", tt.expectedStatus, rr.Code)
+			}
+
+			// Normalize the expected JSON
+			expectedBodyNormalized, err := normalizeJSON(tt.expectedBody)
+			if err != nil {
+				t.Fatalf("Failed to normalize expected JSON: %v", err)
+			}
+
+			// Normalize the actual JSON
+			actualBodyNormalized, err := normalizeJSON(rr.Body.String())
+			if err != nil {
+				t.Fatalf("Failed to normalize actual JSON: %v", err)
+			}
+
+			// Compare the normalized JSON strings
+			if expectedBodyNormalized != actualBodyNormalized {
+				t.Errorf("Expected body:\n%s\nGot body:\n%s", expectedBodyNormalized, actualBodyNormalized)
+			}
+		})
+	}
 }
 
 func TestCreateBook(t *testing.T) {
