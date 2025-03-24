@@ -1,20 +1,47 @@
-##first install minikube
+###Go Assignment Kubernetes Deployment###
 
-minikube start
+The application is deployed using Minikube
 
-//I changed dockerhub image,because without public,this cannot create 
-//deployments and services
+Minikube installed and running.
+kubectl installed.
+Docker installed and configured to use Minikube's Docker daemon.
 
-kubectl create deployment golangassignment --image=hecha/goassignment
-kubectl expose deployment golangassignment --type=NodePort --port=8081
+####minikube start
 
-##And run project ,start goassignment service
+kubectl create deployment goassignment-deployment --image=hecha/goassignment:latest
 
-minikube service golangassignment
+kubectl expose deployment  goassignment-deployment --type=NodePort --port=8081
 
-##For dashboard
+kubectl port-forward service/goassignment-deployment 7080:8081
+
+Tada! Your application is now available at http://localhost:7080/.
+
+
+########################################################Prerequisites
+I deploied using manifest files,same container with different port number 8082
+
+########create pod using file
+kubectl create -f bookapi-pod.yml
+
+#######create deplyment using file
+kubectl create -f bookapi-service.yml
+
+#######create service using file
+kubectl create -f book-api-service.yml
+
+after that
+minikube service book-api-service
+
+Alternatively, you can access the service using the Minikube IP and the NodePort. For example:
+
+http://<static IP>:30007/books?page=1&limit=3
+
+
+minikube ip
+5. Access the Kubernetes Dashboard
+To access the Kubernetes dashboard, run:
+
 minikube dashboard
+Manifest Files
+The k8s folder contains the Kubernetes manifest files for the deployment and service. You can apply these configurations using:
 
-
-############
-I create services,deployments using yml files,they are inside k8s folder
