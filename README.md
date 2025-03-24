@@ -43,5 +43,11 @@ To access the Kubernetes dashboard, run:
 
 minikube dashboard
 Manifest Files
-The k8s folder contains the Kubernetes manifest files for the deployment and service. You can apply these configurations using:
+The k8s folder contains the Kubernetes manifest files for the deployment and service.
 
+############POSTMAN DOCUMENTS LINK
+
+https://documenter.getpostman.com/view/7287191/2sAYkKGcCv
+
+
+https://documenter.getpostman.com/view/7287191/2sAYkKGcCx
