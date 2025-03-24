@@ -13,6 +13,9 @@ RUN go mod download
 # Copy the rest of the application source code
 COPY . .
 
+# Copy the books.json file
+COPY books.json /app/books.json
+
 # Build the Go app
 RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
@@ -24,6 +27,9 @@ WORKDIR /root/
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
+
+# Copy the books.json file to the final image
+COPY --from=builder /app/books.json /root/books.json
 
 # Expose the port the app runs on
 EXPOSE 8081

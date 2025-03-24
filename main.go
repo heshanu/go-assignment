@@ -267,8 +267,8 @@ func createBook(w http.ResponseWriter, request *http.Request) {
 
 func updateBookById(w http.ResponseWriter, request *http.Request) {
 	// Extract bookId from request
-	requestedbookId := request.PathValue("bookId")
-	fmt.Println("Requested Book ID:", requestedbookId)
+	vars := mux.Vars(request)
+	requestedbookId := vars["bookId"]
 
 	// Lock shared books file
 	BookMutex.Lock()
@@ -352,11 +352,11 @@ func updateBookById(w http.ResponseWriter, request *http.Request) {
 
 func deleteBookById(w http.ResponseWriter, request *http.Request) {
 
-	requestedBookID := request.PathValue("bookId")
-	fmt.Println("Requested Book ID:", requestedBookID)
+	vars := mux.Vars(request)
+	requestedbookId := vars["bookId"]
 
 	// Validate book ID
-	if len(requestedBookID) == 0 {
+	if len(requestedbookId) == 0 {
 		http.Error(w, "Request book ID didn't parse", http.StatusBadRequest)
 		return
 	}
@@ -392,7 +392,7 @@ func deleteBookById(w http.ResponseWriter, request *http.Request) {
 	updatedBookList := []Book{}
 	found := false
 	for _, book := range bookList {
-		if book.BookID == requestedBookID {
+		if book.BookID == requestedbookId {
 			found = true // Book found, skipping it (deleting)
 			continue
 		}
