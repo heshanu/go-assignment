@@ -1,14 +1,15 @@
+#e our pod 
+
 apiVersion: v1
 kind: Service
 metadata:
-  name: book-api-service
+  name:  book-api-service
 spec:
+  type: NodePort
   selector:
     app: book-api
   ports:
     - protocol: TCP
-      port: 8082 #port for service
-      targetPort: 8081 #target container port number
-  type: NodePort
-
-  #using nodeport we can expose our pod 
+      port: 8082        # The port that this service will expose
+      targetPort: 8081 # The containerPort on the pods(container runs)
+      nodePort: 30007 #  port on each node's IP
