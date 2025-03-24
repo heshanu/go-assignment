@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: book-api-service
+spec:
+  selector:
+    app: book-api
+  ports:
+    - protocol: TCP
+      port: 8082 #port for service
+      targetPort: 8081 #target container port number
+  type: NodePort
+
+  #using nodeport we can expose our pod 

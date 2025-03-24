@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: book-api
+  labels:
+    app: book-api
+spec:
+  containers:
+  - name: bookapi-container
+    image: hecha/goassignment:latest 
+    ports:
+    - containerPort: 8082

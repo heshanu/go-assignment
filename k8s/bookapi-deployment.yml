@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: book-api-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: book-api
+  template:
+    metadata:
+      labels:
+        app: book-api
+    spec:
+      containers:
+      - name: bookapi-container
+        image: hecha/goassignment:latest 
+        ports:
+        - containerPort: 8082
+#using deployment we can create pod and versioning and control
+#deployments
