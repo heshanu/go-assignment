@@ -49,6 +49,7 @@ func main() {
 	r.HandleFunc("/books", createBook).Methods("POST")
 	r.HandleFunc("/books/{bookId}", updateBookById).Methods("PUT")
 	r.HandleFunc("/books/{bookId}", deleteBookById).Methods("DELETE")
+	r.HandleFunc("/book/search", searchBookByKeyWord).Methods("GET") // Add this line
 
 	fmt.Println("Server listening on :8081")
 	http.ListenAndServe(":8081", r)
@@ -438,6 +439,7 @@ func searchBooks(books []Book, keyword string) []Book {
 }
 
 func searchBookByKeyWord(w http.ResponseWriter, request *http.Request) {
+
 	// Extract the search keyword from the query parameter
 	keyword := request.URL.Query().Get("q")
 	if keyword == "" {
@@ -455,11 +457,22 @@ func searchBookByKeyWord(w http.ResponseWriter, request *http.Request) {
 	// Perform the search concurrently
 	results := searchBooksConcurrently(books, keyword)
 
-	// Return the results as JSON
+	//parse books slice for pagination
+	bookPaginationData, err := getAllBooksPagination(results, 1, 3)
+	if err != nil {
+		http.Error(w, "page and limit must be greater than zero", http.StatusMethodNotAllowed)
+		return
+
+	}
+	fmt.Print(err)
+
+	// Return the 1results as JSON
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(results); err != nil {
+
+	if err := json.NewEncoder(w).Encode(bookPaginationData); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+
 }
 
 // searchBooksConcurrently performs a concurrent search on books
