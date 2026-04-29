@@ -50,3 +50,9 @@ https://documenter.getpostman.com/view/7287191/2sAYkKGcCv
 
 
 https://documenter.getpostman.com/view/7287191/2sAYkKGcCx
+
+### screen shots of minikube 
+<img src="https://github.com/heshanu/go-assignment/blob/dev/Screenshot%202026-04-29%20233225.png"/>
+<img src="https://github.com/heshanu/go-assignment/blob/dev/Screenshot%202026-04-29%20233236.png"/>
+<img src="https://github.com/heshanu/go-assignment/blob/dev/Screenshot%202026-04-29%20233253.png"/>
+
